@@ -12,7 +12,9 @@
 @property (assign) UIView *aBackgroundView;
 @end
 
-@implementation PlaceholderTableView
+@implementation PlaceholderTableView {
+    UITableViewCellSeparatorStyle _previousSeparatorStyle;
+}
 @synthesize placeholderView = _placeholderView;
 
 #pragma mark - Properties
@@ -24,7 +26,7 @@
         _placeholderView = placeholderView;
         
         if (_placeholderView && [self shouldShowPlaceholder]) {
-            [self addPlaceholder];
+            [self addPlaceholder:NO];
         }
     }
 }
@@ -82,9 +84,9 @@
     [super reloadData];
     
     if ([self shouldShowPlaceholder]) {
-        [self addPlaceholder];
+        [self addPlaceholder:NO];
     } else {
-        [self removePlaceholder];
+        [self removePlaceholder:NO];
     }
 }
 
@@ -92,9 +94,9 @@
     [super endUpdates];
     
     if ([self shouldShowPlaceholder]) {
-        [self addPlaceholder];
+        [self addPlaceholder:YES];
     } else {
-        [self removePlaceholder];
+        [self removePlaceholder:YES];
     }
 }
 
@@ -111,15 +113,40 @@
 
 #pragma mark - Private Methods
 
-- (void)addPlaceholder {
+- (void)addPlaceholder:(BOOL)animated {
     if (!self.placeholderView || self.placeholderView.superview) return;
-    
+
+    _previousSeparatorStyle = self.separatorStyle;
+    self.placeholderView.alpha = 0;
     [super.backgroundView addSubview:self.placeholderView];
     [super.backgroundView bringSubviewToFront:self.placeholderView];
+
+    if (animated) {
+        [UIView beginAnimations:@"fade in the placeholder" context:nil];
+        [UIView setAnimationBeginsFromCurrentState:YES];
+        [UIView setAnimationDuration:0.1];
+    }
+    self.separatorStyle = UITableViewCellSeparatorStyleNone;
+    self.placeholderView.alpha = 1;
+    if (animated) {
+        [UIView commitAnimations];
+    }
 }
 
-- (void)removePlaceholder {
-    [self.placeholderView removeFromSuperview];
+- (void)removePlaceholder:(BOOL)animated {
+    if (animated) {
+        [UIView animateWithDuration:0.1 delay:0 options:UIViewAnimationOptionBeginFromCurrentState animations:^(){
+            self.placeholderView.alpha = 0;
+            self.separatorStyle = _previousSeparatorStyle;
+        } completion:^(BOOL finished) {
+            if (finished) {
+                [self.placeholderView removeFromSuperview];
+            }
+        }];
+    } else {
+        self.separatorStyle = _previousSeparatorStyle;
+        [self.placeholderView removeFromSuperview];
+    }
 }
 
 @end
